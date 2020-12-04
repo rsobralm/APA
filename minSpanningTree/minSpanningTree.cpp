@@ -195,8 +195,10 @@ void countingSort(vector<Edge> &A, int n){
     }
 }
 
+
+
 void makeSet(int v){
-    set[v] = v;
+    set[v] = v; // indice representa o vertice, valor o conjunto
 }
 
  int findSet(int v){
@@ -208,11 +210,7 @@ void makeSet(int v){
 }
 
 void unionSet(int u,  int v){
-    u = findSet(u);
-    v = findSet(v);
-    if(u != v){
-        set[v] = u;
-    }
+    set[v] = u;
 }
 
 double MST_Kruskal(){
@@ -221,18 +219,20 @@ double MST_Kruskal(){
     double cost = 0;
     set.resize(dimension);
 
-    for(int i = 1; i <= dimension; i++){
+    for(int i = 1; i <= dimension; i++){ // cria conjunto para cada vértice
         makeSet(i);
     }
 
-    heapSort(edges);
+    heapSort(edges); // ordena as arestas pelo custo
     //countingSort(edges, edges.size());
 
     for(Edge e: edges){
-        if(findSet(e.u) != findSet(e.v)){
-            cost += e.cost;
-            s.push_back(e);
-            unionSet(e.u, e.v);
+        int u = findSet(e.u); // verifica em qual conjunto o vertice está
+        int v = findSet(e.v);
+        if(u != v){
+            cost += e.cost; // computa custo da aresta adicionada
+            s.push_back(e); // adiciona aresta a solução
+            unionSet(u, v); // une os conjuntos disjuntos
         }
     }
 
