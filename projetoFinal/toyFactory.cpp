@@ -28,7 +28,7 @@ struct Solution
 
 void print(Solution s)
 {
-    
+
 }
 
 void construction(Data *data, Solution *s)
@@ -47,7 +47,7 @@ void construction(Data *data, Solution *s)
             availableJobs[j].second[i] = i;
     }
 
-    vector<double> earliest(data->numJobs, 0); // o menor tempo no qual job i pode começar
+    vector<double> earliest(data->numJobs, 0); // o menor tempo no qual o job i pode começar
 
     while (!availableJobs.empty())
     {
