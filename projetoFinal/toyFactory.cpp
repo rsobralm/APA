@@ -2,85 +2,158 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <map>
 
 using namespace std;
 
-void readData(int argc, char** argv, int* n, int* m, double ***Mdist){
+struct Data
+{
+    int numJobs, numMachines;
+    vector<vector<double>> processingTime;
+};
 
-    if (argc < 2) {
+struct Stage
+{
+    int job, machine;
+    double startTime, endTime;
+};
+
+struct Solution
+{
+    double objValue;
+    vector<vector<double>> startTime;
+    vector<vector<int>> schedule; // sequencia de brinquedos de cada maquina
+    vector<double> duration;      // tempo de termino de cada maquina
+};
+
+void print(Solution s)
+{
+    
+}
+
+void construction(Data *data, Solution *s)
+{
+    s->objValue = 0;
+    s->startTime = vector<vector<double>>(data->numJobs, vector<double>(data->numMachines, -1));
+    s->schedule = vector<vector<int>>(data->numMachines, vector<int>(data->numJobs, -1));
+    s->duration = vector<double>(data->numMachines, 0);
+
+    vector<pair<int, vector<int>>> availableJobs(data->numMachines, {0, vector<int>(data->numJobs)});
+
+    for (int j = 0; j < data->numMachines; j++)
+    {
+        availableJobs[j].first = j;
+        for (int i = 0; i < data->numJobs; i++)
+            availableJobs[j].second[i] = i;
+    }
+
+    vector<double> earliest(data->numJobs, 0); // o menor tempo no qual job i pode começar
+
+    while (!availableJobs.empty())
+    {
+        int j = rand() % availableJobs.size(), i = rand() % availableJobs[j].second.size();
+        int machine = availableJobs[j].first, job = availableJobs[j].second[i];
+
+        s->startTime[job][machine] = max(s->duration[machine], earliest[job]);
+        s->duration[machine] = earliest[job] = s->startTime[job][machine] + data->processingTime[job][machine];
+
+        s->objValue = max(s->objValue, s->duration[machine]);
+
+        s->schedule[machine].push_back(job);
+
+        swap(availableJobs[j].second[i], availableJobs[j].second.back());
+        availableJobs[j].second.pop_back();
+        if (availableJobs[j].second.empty())
+        {
+            availableJobs[j].second.swap(availableJobs.back().second);
+            swap(availableJobs[j].first, availableJobs.back().first);
+            availableJobs.pop_back();
+        }
+    }
+}
+
+void readData(int argc, char **argv, Data *data)
+{
+
+    if (argc < 2)
+    {
         cout << "\nFaltando parametros\n";
-        cout << " ./exec [Instancia] "<< endl;
+        cout << " ./exec [Instancia] " << endl;
         exit(1);
     }
 
-    if (argc > 2) {
+    if (argc > 2)
+    {
         cout << "\nMuitos parametros\n";
         cout << " ./exec [Instancia] " << endl;
         exit(1);
     }
 
-    int N, M;
     string arquivo, ewt;
 
-     char *instancia;
-     instancia = argv[1];
+    char *instancia;
+    instancia = argv[1];
 
+    ifstream in(instancia, ios::in);
 
-    ifstream in( instancia, ios::in);
-
-	if (!in) {
-		cout << "arquivo nao pode ser aberto\n";
-		exit(1);
+    if (!in)
+    {
+        cout << "arquivo nao pode ser aberto\n";
+        exit(1);
     }
 
-    while(arquivo.compare("maquinas") != 0){
+    while (arquivo.compare("maquinas") != 0)
+    {
         in >> arquivo;
     }
     if ((arquivo.compare("maquinas") == 0))
-        in >> M;
+        in >> data->numMachines;
 
-    while(arquivo.compare("brinquedos") != 0){
+    while (arquivo.compare("brinquedos") != 0)
+    {
         in >> arquivo;
     }
     if ((arquivo.compare("brinquedos") == 0))
-        in >> N;
+        in >> data->numJobs;
 
-    while(arquivo.compare("BxM") != 0){
+    while (arquivo.compare("BxM") != 0)
+    {
         in >> arquivo;
     }
 
-    double *x = new double [M+1];
-    double *y = new double [N+1];
+    data->processingTime.assign(data->numJobs, vector<double>(data->numMachines));
 
-    double **dist = new double*[N+1];
-
-    for ( int i = 0; i < N+1; i++ ) {
-        dist [i] = new double [M+1];
-    }
-
-    for (int i = 1; i < N+1; i++){
-        for(int j = 1; j < M+1; j++){
-            in >> dist[i][j];
+    for (int i = 0; i < data->numJobs; i++)
+    {
+        for (int j = 0; j < data->numMachines; j++)
+        {
+            in >> data->processingTime[i][j];
         }
     }
-
-    *n = N;
-    *m = M;
-    *Mdist = dist;
 }
 
-int main(int argc, char** argv){
-    double **matriz;
-    int m, n;
-    readData(argc, argv, &n, &m, &matriz);
+int main(int argc, char **argv)
+{
+    srand(time(NULL));
 
-    cout << m << " " << n << endl;
-    
-    for (int i = 1; i < n+1; i++){
-        for(int j = 1; j < m+1; j++){
-            cout << matriz[i][j] << " ";
+    Data data;
+    readData(argc, argv, &data);
+
+    cout << data.numMachines << " " << data.numJobs << endl;
+
+    for (int i = 0; i < data.numJobs; i++)
+    {
+        for (int j = 0; j < data.numMachines; j++)
+        {
+            cout << data.processingTime[i][j] << " ";
         }
         cout << endl;
     }
+
+    Solution s;
+    construction(&data, &s);
+
+    cout << "Obj value: " << s.objValue << endl;
+
     return 0;
 }
