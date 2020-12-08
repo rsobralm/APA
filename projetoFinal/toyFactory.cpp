@@ -21,21 +21,30 @@ struct Stage
 struct Solution
 {
     double objValue;
-    vector<vector<double>> startTime;
+    vector<vector<double>> startTime; //inicio de cada job em cada máquina
     vector<vector<int>> schedule; // sequencia de brinquedos de cada maquina
     vector<double> duration;      // tempo de termino de cada maquina
 };
 
 void print(Solution s)
 {
+    for (int i = 0; i < s.schedule.size(); i++)
+    {
+        for (int j = 0; j < s.schedule[i].size(); j++)
+        {
+            cout << s.schedule[i][j] << " ";
+        }
+        cout << endl;
+    }
+    
 
 }
 
 void construction(Data *data, Solution *s)
 {
     s->objValue = 0;
-    s->startTime = vector<vector<double>>(data->numJobs, vector<double>(data->numMachines, -1));
-    s->schedule = vector<vector<int>>(data->numMachines, vector<int>(data->numJobs, -1));
+    s->startTime = vector<vector<double>>(data->numJobs, vector<double>(data->numMachines, -1)); 
+    s->schedule = vector<vector<int>>(data->numMachines); 
     s->duration = vector<double>(data->numMachines, 0);
 
     vector<pair<int, vector<int>>> availableJobs(data->numMachines, {0, vector<int>(data->numJobs)});
@@ -132,6 +141,46 @@ void readData(int argc, char **argv, Data *data)
     }
 }
 
+bool checkSolution(Data *data, Solution *s){
+    
+    //checando se cada job só aparece uma vez na maquina
+    bool okSol = true;
+    
+    for(int i = 0; i < data->numMachines; i++)
+    {
+       vector<int> jobs(data->numJobs, 0);
+       for(int j = 0; j < data->numJobs; j++)
+       {    
+           jobs[s->schedule[i][j]]++;
+           if(jobs[s->schedule[i][j]] == 2){
+               okSol = false;
+               return okSol;
+           }
+       }
+       
+       
+    }
+
+    //checando se nenhum job está em paralelo
+    for(int i = 0; i < data->numJobs; i++)
+    {
+        for(int j = 1; j < s->startTime[i].size(); j++)
+        {
+            if(abs(s->startTime[i][j] - s->startTime[i][j - 1]) < min(data->processingTime[i][j],data->processingTime[i][j-1])){
+                okSol = false;
+                return okSol;
+            }
+        }
+        
+        
+    }
+    cout << "Bora" << endl;
+    return okSol;
+    
+
+    
+}
+
 int main(int argc, char **argv)
 {
     srand(time(NULL));
@@ -151,9 +200,11 @@ int main(int argc, char **argv)
     }
 
     Solution s;
-    construction(&data, &s);
+    construction(&data, &s);    
 
     cout << "Obj value: " << s.objValue << endl;
+    print(s);
+    checkSolution(&data, &s);
 
     return 0;
 }
