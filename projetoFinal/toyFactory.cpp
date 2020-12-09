@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 #include <cmath>
 #include <map>
 
@@ -12,19 +13,36 @@ struct Data
     vector<vector<double>> processingTime;
 };
 
-struct Stage
-{
-    int job, machine;
-    double startTime, endTime;
-};
-
 struct Solution
 {
     double objValue;
     vector<vector<double>> startTime; //inicio de cada job em cada máquina
-    vector<vector<int>> schedule; // sequencia de brinquedos de cada maquina
-    vector<double> duration;      // tempo de termino de cada maquina
+    vector<vector<int>> schedule;     // sequencia de brinquedos de cada maquina
+    vector<double> duration;          // tempo de termino de cada maquina
+    vector<pair<int, int>> stageSeq;  // estagios (job, maquina) em ordem nao decrescente de startTime
 };
+
+void calculateObjValue(Data *data, Solution *s)
+{
+    vector<double> earliest(data->numJobs, 0); // o menor tempo no qual o job i pode começar
+    s->duration = vector<double>(data->numMachines, 0);
+    s->objValue = 0;
+
+    int count = 0;
+    int tamSeq = data->numJobs * data->numMachines;
+
+    for (int count = 0; count < tamSeq; count++)
+    {
+        int machine = s->stageSeq[count].second, job = s->stageSeq[count].first;
+
+        s->startTime[job][machine] = max(s->duration[machine], earliest[job]);
+        s->duration[machine] = earliest[job] = s->startTime[job][machine] + data->processingTime[job][machine];
+
+        s->objValue = max(s->objValue, s->duration[machine]);
+
+        s->schedule[machine].push_back(job);
+    }
+}
 
 void print(Solution s)
 {
@@ -36,16 +54,15 @@ void print(Solution s)
         }
         cout << endl;
     }
-    
-
 }
 
 void construction(Data *data, Solution *s)
 {
     s->objValue = 0;
-    s->startTime = vector<vector<double>>(data->numJobs, vector<double>(data->numMachines, -1)); 
-    s->schedule = vector<vector<int>>(data->numMachines); 
+    s->startTime = vector<vector<double>>(data->numJobs, vector<double>(data->numMachines, -1));
+    s->schedule = vector<vector<int>>(data->numMachines);
     s->duration = vector<double>(data->numMachines, 0);
+    s->stageSeq = vector<pair<int, int>>(data->numJobs * data->numMachines);
 
     vector<pair<int, vector<int>>> availableJobs(data->numMachines, {0, vector<int>(data->numJobs)});
 
@@ -58,6 +75,7 @@ void construction(Data *data, Solution *s)
 
     vector<double> earliest(data->numJobs, 0); // o menor tempo no qual o job i pode começar
 
+    int count = 0;
     while (!availableJobs.empty())
     {
         int j = rand() % availableJobs.size(), i = rand() % availableJobs[j].second.size();
@@ -78,7 +96,42 @@ void construction(Data *data, Solution *s)
             swap(availableJobs[j].first, availableJobs.back().first);
             availableJobs.pop_back();
         }
+
+        s->stageSeq[count] = {job, machine};
+        count++;
     }
+}
+
+bool movSwap(Data *data, Solution *s)
+{
+    int numStages = data->numJobs * data->numMachines;
+    double bestObj = s->objValue;
+    int best_i, best_j;
+    bool improved = false;
+
+    for (int i = 0; i < numStages; i++)
+    {
+        for (int j = i + 1; j < numStages; j++)
+        {
+            swap(s->stageSeq[i], s->stageSeq[j]);
+            calculateObjValue(data, s);
+            if (s->objValue < bestObj)
+            {
+                best_i = i;
+                best_j = j;
+                bestObj = s->objValue;
+                improved = true;
+            }
+            swap(s->stageSeq[i], s->stageSeq[j]);
+        }
+    }
+
+    if (improved)
+        swap(s->stageSeq[best_i], s->stageSeq[best_j]);
+
+    calculateObjValue(data, s);
+
+    return improved;
 }
 
 void readData(int argc, char **argv, Data *data)
@@ -141,44 +194,59 @@ void readData(int argc, char **argv, Data *data)
     }
 }
 
-bool checkSolution(Data *data, Solution *s){
-    
-    //checando se cada job só aparece uma vez na maquina
-    bool okSol = true;
-    
-    for(int i = 0; i < data->numMachines; i++)
+bool checkSolution(Data *data, Solution *s)
+{
+    // checando se uma maquina processa dois jobs ao mesmo tempo
+    for (int k = 0; k < data->numMachines; k++)
     {
-       vector<int> jobs(data->numJobs, 0);
-       for(int j = 0; j < data->numJobs; j++)
-       {    
-           jobs[s->schedule[i][j]]++;
-           if(jobs[s->schedule[i][j]] == 2){
-               okSol = false;
-               return okSol;
-           }
-       }
-       
-       
-    }
-
-    //checando se nenhum job está em paralelo
-    for(int i = 0; i < data->numJobs; i++)
-    {
-        for(int j = 1; j < s->startTime[i].size(); j++)
+        for (int i = 0; i < data->numJobs; i++)
         {
-            if(abs(s->startTime[i][j] - s->startTime[i][j - 1]) < min(data->processingTime[i][j],data->processingTime[i][j-1])){
-                okSol = false;
-                return okSol;
+            for (int j = 0; j < data->numJobs; j++)
+            {
+                if (j == i)
+                    continue;
+                if (!(s->startTime[j][k] - s->startTime[i][k] >= data->processingTime[i][k] || s->startTime[i][k] - s->startTime[j][k] >= data->processingTime[j][k]))
+                {
+                    return false;
+                }
             }
         }
-        
-        
     }
-    cout << "Bora" << endl;
-    return okSol;
-    
 
-    
+    // checando se um job é processado por duas maquinas ao mesmo tempo
+    for (int k = 0; k < data->numMachines; k++)
+    {
+        for (int l = 0; l < data->numMachines; l++)
+        {
+            if (k == l)
+                continue;
+            for (int i = 0; i < data->numJobs; i++)
+            {
+                if (!(s->startTime[i][k] - s->startTime[i][l] >= data->processingTime[i][l] || s->startTime[i][l] - s->startTime[i][k] >= data->processingTime[i][k]))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    // valor obj
+    double objValue = 0;
+    for (int k = 0; k < data->numMachines; k++)
+    {
+        vector<pair<double, int>> v;
+        for (int i = 0; i < data->numJobs; i++)
+        {
+            v.push_back({s->startTime[i][k], i});
+        }
+        sort(v.begin(), v.end());
+        objValue = max(objValue, v.back().first + data->processingTime[v.back().second][k]);
+    }
+    if (objValue != s->objValue)
+        return false;
+
+    cout << "SOLUCAO OK!" << endl;
+
+    return true;
 }
 
 int main(int argc, char **argv)
@@ -200,11 +268,16 @@ int main(int argc, char **argv)
     }
 
     Solution s;
-    construction(&data, &s);    
+    construction(&data, &s);
 
     cout << "Obj value: " << s.objValue << endl;
-    print(s);
+    // print(s);
+
     checkSolution(&data, &s);
+
+    while(movSwap(&data, &s));
+
+    cout << "Obj value: " << s.objValue << endl;
 
     return 0;
 }
