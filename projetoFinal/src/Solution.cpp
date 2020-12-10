@@ -31,7 +31,6 @@ void calculateObjValue(Data *data, Solution *s)
 
         s->objValue = max(s->objValue, s->duration[machine]);
 
-        s->schedule[machine].push_back(job);
     }
 }
 

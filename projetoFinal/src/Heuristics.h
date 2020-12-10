@@ -7,6 +7,8 @@
 using namespace std;
 
 void construction(Data *data, Solution *s);
+void construction2(Data *data, Solution *s);
+
 bool movSwap(Data *data, Solution *s);
 
 #endif
