@@ -1,0 +1,5 @@
+
+for file in instancias/*
+do
+  ./toy "$file" >> tabela.txt
+done
