@@ -1,18 +1,5 @@
 #include "Solution.h"
 
-void print(Solution s)
-{
-    for (int i = 0; i < s.schedule.size(); i++)
-    {
-        for (int j = 0; j < s.schedule[i].size(); j++)
-        {
-            cout << s.schedule[i][j] << " ";
-        }
-        cout << endl;
-    }
-}
-
-
 void calculateObjValue(Data *data, Solution *s)
 {
     vector<double> earliest(data->numJobs, 0); // o menor tempo no qual o job i pode começar

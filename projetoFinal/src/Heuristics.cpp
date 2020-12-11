@@ -4,7 +4,6 @@ void construction(Data *data, Solution *s)
 {
     s->objValue = 0;
     s->startTime = vector<vector<double>>(data->numJobs, vector<double>(data->numMachines, -1));
-    s->schedule = vector<vector<int>>(data->numMachines);
     s->duration = vector<double>(data->numMachines, 0);
     s->stageSeq = vector<pair<int, int>>(data->numJobs * data->numMachines);
 
@@ -48,8 +47,6 @@ void construction(Data *data, Solution *s)
         s->duration[machine] = earliest[job] = s->startTime[job][machine] + data->processingTime[job][machine];
 
         s->objValue = max(s->objValue, s->duration[machine]);
-
-        s->schedule[machine].push_back(job);
 
         swap(availableJobs[j].second[i], availableJobs[j].second.back());
         availableJobs[j].second.pop_back();

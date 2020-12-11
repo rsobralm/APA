@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     chrono::duration<double> elapsed = end - start;
     timeConstruction = elapsed.count();
 
-    while (movSwap(&data, &s));
+    movSwap(&data, &s);
         
     end = chrono::system_clock::now();
     elapsed = end - start;
